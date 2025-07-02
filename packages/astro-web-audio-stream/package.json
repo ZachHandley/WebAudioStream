@@ -1,6 +1,6 @@
 {
   "name": "@zachhandley/astro-web-audio-stream",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Astro integration for Web Audio Stream with automatic worklet deployment",
   "type": "module",
   "main": "./dist/index.js",

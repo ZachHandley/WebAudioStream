@@ -1,0 +1,45 @@
+{
+  "name": "@web-audio-stream/monorepo",
+  "version": "0.1.0",
+  "description": "iOS Safari-safe Web Audio streaming with progressive loading and memory management",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "clean": "pnpm -r run clean && rm -rf node_modules",
+    "dev": "pnpm -r run dev",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.1",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZachHandley/WebAudioStream.git"
+  },
+  "author": "Zachary Handley <zach@zachhandley.com>",
+  "license": "MIT",
+  "keywords": [
+    "web-audio",
+    "ios-safari",
+    "audio-streaming",
+    "progressive-loading",
+    "indexeddb",
+    "audioworklet"
+  ]
+}

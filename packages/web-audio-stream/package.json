@@ -1,0 +1,54 @@
+{
+  "name": "@zachhandley/web-audio-stream",
+  "version": "0.1.0",
+  "description": "iOS Safari-safe Web Audio streaming with progressive loading and memory management",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./worklet": {
+      "import": "./dist/audio-worklet-processor.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc && cp src/audio-worklet-processor.js dist/",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts,.tsx",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "keywords": [
+    "web-audio",
+    "ios-safari",
+    "audio-streaming",
+    "progressive-loading",
+    "indexeddb",
+    "audioworklet",
+    "safari-bugs",
+    "audio-chunks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZachHandley/WebAudioStream.git",
+    "directory": "packages/web-audio-stream"
+  },
+  "author": "Zachary Handley <zach@zachhandley.com>",
+  "license": "MIT"
+}

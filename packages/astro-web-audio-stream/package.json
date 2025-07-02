@@ -28,11 +28,11 @@
     "@zachhandley/web-audio-stream": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "astro": "^4.0.0",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3",
-    "vitest": "^1.2.0"
+    "@types/node": "^24.0.10",
+    "astro": "^5.10.2",
+    "eslint": "^9.30.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "astro": "^4.0.0"

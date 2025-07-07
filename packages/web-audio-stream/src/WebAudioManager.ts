@@ -17,6 +17,8 @@ export interface WebAudioManagerOptions {
   // Instant playback options
   enableInstantPlayback?: boolean;
   instantPlaybackConfig?: InstantPlaybackConfig;
+  // Privacy options
+  obfuscationKey?: string;
 }
 
 export interface InstantPlaybackConfig {
@@ -104,6 +106,7 @@ export class WebAudioManager {
   private enableCache: boolean;
   private enableInstantPlayback: boolean;
   private instantPlaybackConfig: InstantPlaybackConfig;
+  private obfuscationKey?: string;
   
   // Legacy instant playback state (deprecated, TODO: remove in v2.0.0)
   private instantPlaybackSessions: Map<string, InstantPlaybackSession> = new Map();
@@ -129,6 +132,7 @@ export class WebAudioManager {
     this.onEnded = options.onEnded;
     this.onError = options.onError;
     this.onProgressiveLoadingStatus = options.onProgressiveLoadingStatus;
+    this.obfuscationKey = options.obfuscationKey;
     
     // Initialize instant playback settings
     this.enableInstantPlayback = options.enableInstantPlayback !== false;
@@ -375,7 +379,7 @@ export class WebAudioManager {
       
       // Initialize chunk store if caching is enabled
       if (this.enableCache) {
-        this.chunkStore = new AudioChunkStore(this.audioContext);
+        this.chunkStore = new AudioChunkStore(this.audioContext, undefined, this.obfuscationKey);
         await this.chunkStore.initialize();
       }
       

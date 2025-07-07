@@ -169,7 +169,29 @@ cachedTracks.forEach(track => {
 // - Playlist state tracking
 ```
 
-### 5. Advanced Configuration
+### 5. Privacy & Custom Storage Keys (v1.4.0+)
+
+```typescript
+import { setupInstantAudio, setupWebAudio } from 'z-web-audio-stream';
+
+// Use your own obfuscation key for privacy
+const manager = await setupInstantAudio({
+  obfuscationKey: 'my-app-secret-key-2024'
+});
+
+// Or with basic setup
+const basicManager = await setupWebAudio({
+  obfuscationKey: 'custom-privacy-key'
+});
+
+// Benefits:
+// - Your app's cached audio data is obfuscated with your key
+// - Prevents other apps from easily reading your cached data
+// - Each app/environment can use different keys for data isolation
+// - Backward compatible - existing data works with default key
+```
+
+### 6. Advanced Configuration
 
 ```typescript
 import { WebAudioManager, AudioChunkStore } from 'z-web-audio-stream';

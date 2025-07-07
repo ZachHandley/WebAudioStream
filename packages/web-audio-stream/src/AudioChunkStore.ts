@@ -68,15 +68,16 @@ export class AudioChunkStore {
   };
   
   // Simple obfuscation key (not for real security, just to deter casual inspection)
-  private readonly obfuscationKey = 'WebAudioStream2024';
+  private readonly obfuscationKey: string;
   
   // Storage limits
   private readonly maxStorageSize = 1024 * 1024 * 1024; // 1GB
   private readonly maxAge = 10 * 24 * 60 * 60 * 1000; // 10 days
   private readonly minChunksForPlayback = 1; // Start playback after 1 chunk (3MB loads quickly)
 
-  constructor(audioContext: AudioContext, instantConfig?: Partial<InstantChunkConfig>) {
+  constructor(audioContext: AudioContext, instantConfig?: Partial<InstantChunkConfig>, obfuscationKey?: string) {
     this.audioContext = audioContext;
+    this.obfuscationKey = obfuscationKey || 'WebAudioStream2024';
     
     if (instantConfig) {
       this.instantChunkConfig = { ...this.instantChunkConfig, ...instantConfig };

@@ -1,5 +1,21 @@
 # @zachhandley/web-audio-stream
 
+## 1.4.0
+
+### Minor Changes
+
+- **Custom Obfuscation Keys**: Users can now provide their own obfuscation key for privacy
+- Added `obfuscationKey` option to `WebAudioManagerOptions`, `setupWebAudio()`, and `setupInstantAudio()`
+- Enhanced privacy with app-specific data isolation in IndexedDB storage
+- Backward compatible with existing cached data using default obfuscation key
+
+### Features
+
+- **Privacy Control**: Set custom obfuscation keys to prevent cross-app data access
+- **Data Isolation**: Each app can use different keys for secure data separation
+- **Simple Integration**: Single optional parameter for enhanced privacy
+- **Backward Compatibility**: Existing data continues to work seamlessly
+
 ## 1.3.0
 
 ### Minor Changes

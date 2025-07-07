@@ -48,6 +48,7 @@ export async function setupWebAudio(options: {
   enableCache?: boolean;
   enableInstantPlayback?: boolean;
   instantPlaybackConfig?: InstantPlaybackConfig;
+  obfuscationKey?: string;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
   onError?: (error: Error) => void;
@@ -66,6 +67,7 @@ export async function setupInstantAudio(options: {
   playbackChunkSize?: number;      // Size for initial playback (256KB-384KB)
   maxInitialWaitTime?: number;
   enablePerformanceLogging?: boolean;
+  obfuscationKey?: string;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
   onError?: (error: Error) => void;
@@ -91,6 +93,7 @@ export async function setupInstantAudio(options: {
     enableCache: options.enableCache,
     enableInstantPlayback: true,
     instantPlaybackConfig: instantConfig,
+    obfuscationKey: options.obfuscationKey,
     onTimeUpdate: options.onTimeUpdate,
     onEnded: options.onEnded,
     onError: options.onError,

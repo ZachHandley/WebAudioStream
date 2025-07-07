@@ -36,6 +36,12 @@ export interface ProgressCallback {
   (loaded: number, total: number, canStartPlayback: boolean): void;
 }
 
+export interface InstantChunkConfig {
+  initialChunkSize: number;
+  subsequentChunkSize: number;
+  enableInstantMode: boolean;
+}
+
 /**
  * iOS Safari-safe audio chunk storage with progressive loading
  * 
@@ -49,10 +55,17 @@ export interface ProgressCallback {
 export class AudioChunkStore {
   private db: IDBDatabase | null = null;
   private audioContext: AudioContext;
-  private chunkSizeBytes: number = 3 * 1024 * 1024; // 3MB per chunk
+  private chunkSizeBytes: number = 3 * 1024 * 1024; // 3MB per chunk (default)
   private initialized = false;
   private readonly dbName = 'WAS_MediaCache_v1';
   private readonly dbVersion = 2;
+  
+  // Instant playback chunk configuration
+  private instantChunkConfig: InstantChunkConfig = {
+    initialChunkSize: 384 * 1024, // 384KB for instant playback
+    subsequentChunkSize: 2 * 1024 * 1024, // 2MB for subsequent chunks
+    enableInstantMode: true
+  };
   
   // Simple obfuscation key (not for real security, just to deter casual inspection)
   private readonly obfuscationKey = 'WebAudioStream2024';
@@ -62,8 +75,12 @@ export class AudioChunkStore {
   private readonly maxAge = 10 * 24 * 60 * 60 * 1000; // 10 days
   private readonly minChunksForPlayback = 1; // Start playback after 1 chunk (3MB loads quickly)
 
-  constructor(audioContext: AudioContext) {
+  constructor(audioContext: AudioContext, instantConfig?: Partial<InstantChunkConfig>) {
     this.audioContext = audioContext;
+    
+    if (instantConfig) {
+      this.instantChunkConfig = { ...this.instantChunkConfig, ...instantConfig };
+    }
   }
 
   // Simple XOR-based obfuscation for metadata (reversible)
@@ -622,20 +639,549 @@ export class AudioChunkStore {
     console.log(`[AudioChunkStore] Removed track: ${trackId}`);
   }
 
+  // Store audio with instant playback support (variable chunk sizes)
+  async storeAudioForInstantPlayback(
+    url: string,
+    trackId: string,
+    name: string,
+    progressCallback?: ProgressCallback
+  ): Promise<AudioMetadata> {
+    if (!this.initialized) await this.initialize();
+
+    // Check if already stored
+    const existingMetadata = await this.getMetadata(trackId);
+    if (existingMetadata) {
+      await this.updateLastAccessed(trackId);
+      return existingMetadata;
+    }
+
+    console.log(`[AudioChunkStore] Storing audio for instant playback: ${name} (${trackId})`);
+
+    // Fetch and decode audio
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch audio: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+
+    // Create chunks with variable sizes for instant playback
+    const chunks = this.audioBufferToInstantChunks(audioBuffer, trackId);
+    
+    const metadata: AudioMetadata = {
+      trackId,
+      name,
+      duration: audioBuffer.duration,
+      sampleRate: audioBuffer.sampleRate,
+      numberOfChannels: audioBuffer.numberOfChannels,
+      totalChunks: chunks.length,
+      lastAccessed: Date.now(),
+      fileSize: arrayBuffer.byteLength,
+      url
+    };
+
+    // Store metadata first
+    await this.saveMetadata(metadata);
+
+    // Store chunks progressively - first chunk has priority
+    for (let i = 0; i < chunks.length; i++) {
+      await this.saveChunk(chunks[i]);
+      
+      // Report progress
+      if (progressCallback) {
+        const loaded = i + 1;
+        const canStartPlayback = loaded >= 1; // Can start after first chunk
+        progressCallback(loaded, chunks.length, canStartPlayback);
+      }
+    }
+
+    console.log(`[AudioChunkStore] Stored ${chunks.length} variable-size chunks for instant playback: ${name}`);
+    return metadata;
+  }
+
+  // Convert audio buffer to variable-sized chunks for instant playback
+  private audioBufferToInstantChunks(audioBuffer: AudioBuffer, trackId: string): AudioChunk[] {
+    const chunks: AudioChunk[] = [];
+    const bytesPerSample = 4; // 32-bit float
+    const totalSamples = audioBuffer.length;
+    
+    // Calculate chunk sizes in samples
+    const initialChunkSamples = Math.floor(
+      this.instantChunkConfig.initialChunkSize / (audioBuffer.numberOfChannels * bytesPerSample)
+    );
+    const subsequentChunkSamples = Math.floor(
+      this.instantChunkConfig.subsequentChunkSize / (audioBuffer.numberOfChannels * bytesPerSample)
+    );
+    
+    let offset = 0;
+    let chunkIndex = 0;
+    
+    while (offset < totalSamples) {
+      // Use smaller chunk size for first chunk, larger for subsequent
+      const chunkSamples = chunkIndex === 0 ? initialChunkSamples : subsequentChunkSamples;
+      const length = Math.min(chunkSamples, totalSamples - offset);
+      
+      const channels: Float32Array[] = [];
+      for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+        const channelData = audioBuffer.getChannelData(c);
+        const chunkData = new Float32Array(length);
+        for (let i = 0; i < length; i++) {
+          chunkData[i] = channelData[offset + i];
+        }
+        channels.push(chunkData);
+      }
+
+      chunks.push({
+        id: `${trackId}-${chunkIndex}`,
+        trackId,
+        chunkIndex,
+        sampleRate: audioBuffer.sampleRate,
+        length,
+        channels
+      });
+      
+      offset += length;
+      chunkIndex++;
+    }
+
+    const initialSizeKB = Math.round(this.instantChunkConfig.initialChunkSize / 1024);
+    const subsequentSizeKB = Math.round(this.instantChunkConfig.subsequentChunkSize / 1024);
+    
+    console.log(`[AudioChunkStore] Created ${chunks.length} instant chunks for ${trackId}: first chunk ${initialSizeKB}KB, subsequent ${subsequentSizeKB}KB`);
+    return chunks;
+  }
+
+  // Load first chunk only for instant playback
+  async getFirstChunk(trackId: string): Promise<AudioBuffer | null> {
+    if (!this.initialized) await this.initialize();
+
+    const metadata = await this.getMetadata(trackId);
+    if (!metadata) return null;
+
+    // Load only the first chunk
+    const firstChunk = await this.getChunk(trackId, 0);
+    if (!firstChunk) return null;
+
+    // Create buffer from first chunk only
+    const audioBuffer = this.audioContext.createBuffer(
+      metadata.numberOfChannels,
+      firstChunk.length,
+      metadata.sampleRate
+    );
+
+    for (let c = 0; c < metadata.numberOfChannels; c++) {
+      const targetChannel = audioBuffer.getChannelData(c);
+      const sourceChannel = firstChunk.channels[c];
+      targetChannel.set(sourceChannel, 0);
+    }
+
+    await this.updateLastAccessed(trackId);
+    return audioBuffer;
+  }
+
+  // Get progressive chunks for seamless replacement
+  async getProgressiveChunks(
+    trackId: string,
+    startChunk: number = 0,
+    maxChunks?: number
+  ): Promise<AudioBuffer | null> {
+    if (!this.initialized) await this.initialize();
+
+    const metadata = await this.getMetadata(trackId);
+    if (!metadata) return null;
+
+    const endChunk = maxChunks 
+      ? Math.min(startChunk + maxChunks, metadata.totalChunks)
+      : metadata.totalChunks;
+
+    // Load chunks
+    const chunks: AudioChunk[] = [];
+    for (let i = startChunk; i < endChunk; i++) {
+      const chunk = await this.getChunk(trackId, i);
+      if (chunk) chunks.push(chunk);
+    }
+
+    if (chunks.length === 0) return null;
+
+    // Merge chunks into single AudioBuffer
+    return this.mergeChunks(chunks, metadata);
+  }
+
+  // Configure instant playback settings
+  configureInstantMode(config: Partial<InstantChunkConfig>): void {
+    this.instantChunkConfig = { ...this.instantChunkConfig, ...config };
+    
+    // Update iOS Safari optimization if needed
+    if (this.isSafariIOS()) {
+      this.instantChunkConfig.initialChunkSize = Math.min(
+        this.instantChunkConfig.initialChunkSize,
+        256 * 1024 // Cap at 256KB for iOS Safari
+      );
+      this.instantChunkConfig.subsequentChunkSize = Math.min(
+        this.instantChunkConfig.subsequentChunkSize,
+        1024 * 1024 // Cap at 1MB for iOS Safari
+      );
+    }
+    
+    console.log(`[AudioChunkStore] Instant mode configured: initial=${Math.round(this.instantChunkConfig.initialChunkSize/1024)}KB, subsequent=${Math.round(this.instantChunkConfig.subsequentChunkSize/1024)}KB`);
+  }
+  
+  // Store audio with streaming support for instant playback
+  async storeAudioStreaming(
+    url: string,
+    trackId: string,
+    name: string,
+    options: {
+      initialChunkSize?: number;
+      subsequentChunkSize?: number;
+      useRangeRequests?: boolean;
+      progressCallback?: ProgressCallback;
+    } = {}
+  ): Promise<AudioMetadata> {
+    if (!this.initialized) await this.initialize();
+
+    // Check if already stored
+    const existingMetadata = await this.getMetadata(trackId);
+    if (existingMetadata) {
+      await this.updateLastAccessed(trackId);
+      return existingMetadata;
+    }
+
+    console.log(`[AudioChunkStore] Storing audio with streaming: ${name} (${trackId})`);
+    
+    const initialChunkSize = options.initialChunkSize || this.instantChunkConfig.initialChunkSize;
+    const subsequentChunkSize = options.subsequentChunkSize || this.instantChunkConfig.subsequentChunkSize;
+    const useRangeRequests = options.useRangeRequests !== false; // Default to true
+    
+    try {
+      // Try streaming approach first
+      if (useRangeRequests && await this.checkRangeSupport(url)) {
+        return await this.storeAudioWithRangeRequests(url, trackId, name, initialChunkSize, subsequentChunkSize, options.progressCallback);
+      } else {
+        // Fallback to standard progressive loading
+        console.log(`[AudioChunkStore] Range requests not supported, using progressive loading`);
+        return await this.storeAudioForInstantPlayback(url, trackId, name, options.progressCallback);
+      }
+    } catch (error) {
+      console.warn(`[AudioChunkStore] Streaming storage failed, falling back to standard method: ${error}`);
+      return await this.storeAudio(url, trackId, name, options.progressCallback);
+    }
+  }
+  
+  // Check if server supports Range requests
+  private async checkRangeSupport(url: string): Promise<boolean> {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      const acceptRanges = response.headers.get('accept-ranges');
+      const contentLength = response.headers.get('content-length');
+      
+      return acceptRanges === 'bytes' && contentLength !== null;
+    } catch (error) {
+      console.warn(`[AudioChunkStore] Range support check failed: ${error}`);
+      return false;
+    }
+  }
+  
+  // Store audio using Range requests for better streaming
+  private async storeAudioWithRangeRequests(
+    url: string,
+    trackId: string,
+    name: string,
+    initialChunkSize: number,
+    subsequentChunkSize: number,
+    progressCallback?: ProgressCallback
+  ): Promise<AudioMetadata> {
+    // Get file size first
+    const fileSize = await this.getFileSize(url);
+    if (!fileSize) {
+      throw new Error('Could not determine file size');
+    }
+    
+    console.log(`[AudioChunkStore] Using Range requests for ${name} (${(fileSize / 1024 / 1024).toFixed(1)}MB)`);
+    
+    // Load initial chunk
+    const initialResponse = await fetch(url, {
+      headers: {
+        'Range': `bytes=0-${initialChunkSize - 1}`
+      }
+    });
+    
+    if (!initialResponse.ok && initialResponse.status !== 206) {
+      throw new Error(`Failed to fetch initial chunk: ${initialResponse.status}`);
+    }
+    
+    const initialBuffer = await initialResponse.arrayBuffer();
+    const initialAudioBuffer = await this.audioContext.decodeAudioData(initialBuffer);
+    
+    // Create preliminary metadata
+    const totalChunks = Math.ceil(fileSize / subsequentChunkSize);
+    const metadata: AudioMetadata = {
+      trackId,
+      name,
+      duration: initialAudioBuffer.duration,
+      sampleRate: initialAudioBuffer.sampleRate,
+      numberOfChannels: initialAudioBuffer.numberOfChannels,
+      totalChunks,
+      lastAccessed: Date.now(),
+      fileSize,
+      url
+    };
+    
+    // Store metadata first
+    await this.saveMetadata(metadata);
+    
+    // Store initial chunk
+    const initialChunk = this.audioBufferToSingleChunk(initialAudioBuffer, trackId, 0);
+    await this.saveChunk(initialChunk);
+    
+    // Report initial progress
+    progressCallback?.(1, totalChunks, true); // Can start playback
+    
+    // Load remaining chunks in background
+    this.loadRemainingChunksInBackground(url, trackId, initialChunkSize, subsequentChunkSize, fileSize, progressCallback);
+    
+    return metadata;
+  }
+  
+  // Get file size using HEAD request
+  private async getFileSize(url: string): Promise<number> {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      const contentLength = response.headers.get('content-length');
+      return contentLength ? parseInt(contentLength, 10) : 0;
+    } catch (error) {
+      console.warn(`[AudioChunkStore] Failed to get file size: ${error}`);
+      return 0;
+    }
+  }
+  
+  // Convert single AudioBuffer to chunk
+  private audioBufferToSingleChunk(audioBuffer: AudioBuffer, trackId: string, chunkIndex: number): AudioChunk {
+    const channels: Float32Array[] = [];
+    for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+      channels.push(audioBuffer.getChannelData(c));
+    }
+    
+    return {
+      id: `${trackId}-${chunkIndex}`,
+      trackId,
+      chunkIndex,
+      sampleRate: audioBuffer.sampleRate,
+      length: audioBuffer.length,
+      channels
+    };
+  }
+  
+  // Load remaining chunks in background
+  private async loadRemainingChunksInBackground(
+    url: string,
+    trackId: string,
+    initialChunkSize: number,
+    subsequentChunkSize: number,
+    fileSize: number,
+    progressCallback?: ProgressCallback
+  ): Promise<void> {
+    let currentOffset = initialChunkSize;
+    let chunkIndex = 1;
+    const totalChunks = Math.ceil(fileSize / subsequentChunkSize);
+    
+    try {
+      while (currentOffset < fileSize) {
+        const endOffset = Math.min(currentOffset + subsequentChunkSize - 1, fileSize - 1);
+        
+        console.log(`[AudioChunkStore] Loading background chunk ${chunkIndex} (${(currentOffset / 1024).toFixed(1)}KB - ${(endOffset / 1024).toFixed(1)}KB)`);
+        
+        const response = await fetch(url, {
+          headers: {
+            'Range': `bytes=${currentOffset}-${endOffset}`
+          }
+        });
+        
+        if (!response.ok && response.status !== 206) {
+          console.warn(`[AudioChunkStore] Failed to fetch background chunk ${chunkIndex}: ${response.status}`);
+          break;
+        }
+        
+        const chunkBuffer = await response.arrayBuffer();
+        
+        // For background chunks, we might store them as raw data for later processing
+        // This is a simplified approach - in production, you might want to decode incrementally
+        
+        progressCallback?.(chunkIndex + 1, totalChunks, true);
+        
+        currentOffset = endOffset + 1;
+        chunkIndex++;
+        
+        // Add small delay to prevent overwhelming the browser
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      console.log(`[AudioChunkStore] Completed background loading for ${trackId}`);
+      
+    } catch (error) {
+      console.warn(`[AudioChunkStore] Background loading failed: ${error}`);
+    }
+  }
+
+  /**
+   * Store assembly chunks from streaming assembler
+   */
+  async storeAssemblyChunks(
+    trackId: string,
+    name: string,
+    assemblyChunks: import('./StreamingAssembler.js').AssemblyChunk[],
+    progressCallback?: ProgressCallback
+  ): Promise<AudioMetadata> {
+    if (!this.initialized) await this.initialize();
+    
+    console.log(`[AudioChunkStore] Storing ${assemblyChunks.length} assembly chunks for: ${name} (${trackId})`);
+    
+    // Calculate total metadata from assembly chunks
+    const totalSize = assemblyChunks.reduce((sum, chunk) => sum + chunk.totalSize, 0);
+    
+    // Use first chunk to get audio metadata (decode small portion for properties)
+    const firstChunk = assemblyChunks[0];
+    if (!firstChunk) {
+      throw new Error('No assembly chunks provided');
+    }
+    
+    // Decode first chunk to get audio properties
+    const firstBuffer = await this.audioContext.decodeAudioData(firstChunk.data.slice(0));
+    
+    const metadata: AudioMetadata = {
+      trackId,
+      name,
+      duration: 0, // Will be calculated from all chunks
+      sampleRate: firstBuffer.sampleRate,
+      numberOfChannels: firstBuffer.numberOfChannels,
+      totalChunks: assemblyChunks.length,
+      lastAccessed: Date.now(),
+      fileSize: totalSize,
+      url: `assembly://${trackId}` // Special URL to indicate assembly origin
+    };
+    
+    // Store metadata first
+    await this.saveMetadata(metadata);
+    
+    // Convert assembly chunks to storage chunks
+    let totalDuration = 0;
+    for (let i = 0; i < assemblyChunks.length; i++) {
+      const assemblyChunk = assemblyChunks[i];
+      
+      // Decode the chunk to get proper audio data
+      const audioBuffer = await this.audioContext.decodeAudioData(assemblyChunk.data.slice(0));
+      totalDuration += audioBuffer.duration;
+      
+      // Convert to storage chunk format
+      const storageChunk = this.audioBufferToStorageChunk(audioBuffer, trackId, i);
+      await this.saveChunk(storageChunk);
+      
+      // Report progress
+      if (progressCallback) {
+        const canStartPlayback = i === 0; // First chunk enables playback
+        progressCallback(i + 1, assemblyChunks.length, canStartPlayback);
+      }
+    }
+    
+    // Update metadata with correct duration
+    metadata.duration = totalDuration;
+    await this.saveMetadata(metadata);
+    
+    console.log(`[AudioChunkStore] Stored ${assemblyChunks.length} assembly chunks for ${name} (total duration: ${totalDuration.toFixed(2)}s)`);
+    return metadata;
+  }
+
+  /**
+   * Convert an AudioBuffer to a storage chunk
+   */
+  private audioBufferToStorageChunk(audioBuffer: AudioBuffer, trackId: string, chunkIndex: number): AudioChunk {
+    const channels: Float32Array[] = [];
+    for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+      channels.push(audioBuffer.getChannelData(c));
+    }
+    
+    return {
+      id: `${trackId}-${chunkIndex}`,
+      trackId,
+      chunkIndex,
+      sampleRate: audioBuffer.sampleRate,
+      length: audioBuffer.length,
+      channels
+    };
+  }
+
+  /**
+   * Get first chunk for instant playback (optimized for assembly chunks)
+   */
+  async getFirstChunkBuffer(trackId: string): Promise<AudioBuffer | null> {
+    if (!this.initialized) await this.initialize();
+    
+    const firstChunk = await this.getChunk(trackId, 0);
+    if (!firstChunk) return null;
+    
+    // Create AudioBuffer from first chunk
+    const audioBuffer = this.audioContext.createBuffer(
+      firstChunk.channels.length,
+      firstChunk.length,
+      firstChunk.sampleRate
+    );
+    
+    for (let c = 0; c < firstChunk.channels.length; c++) {
+      const channelData = audioBuffer.getChannelData(c);
+      channelData.set(firstChunk.channels[c]);
+    }
+    
+    return audioBuffer;
+  }
+
   // Get storage statistics
   async getStorageInfo(): Promise<{
     totalTracks: number;
     totalSize: number;
     oldestTrack: number;
     newestTrack: number;
+    instantModeEnabled: boolean;
+    chunkSizeConfig: {
+      initialChunkSize: number;
+      subsequentChunkSize: number;
+    };
   }> {
     const allMetadata = await this.getAllMetadata();
     
     return {
       totalTracks: allMetadata.length,
       totalSize: allMetadata.reduce((sum, m) => sum + m.fileSize, 0),
-      oldestTrack: Math.min(...allMetadata.map(m => m.lastAccessed)),
-      newestTrack: Math.max(...allMetadata.map(m => m.lastAccessed))
+      oldestTrack: allMetadata.length > 0 ? Math.min(...allMetadata.map(m => m.lastAccessed)) : 0,
+      newestTrack: allMetadata.length > 0 ? Math.max(...allMetadata.map(m => m.lastAccessed)) : 0,
+      instantModeEnabled: this.instantChunkConfig.enableInstantMode,
+      chunkSizeConfig: {
+        initialChunkSize: this.instantChunkConfig.initialChunkSize,
+        subsequentChunkSize: this.instantChunkConfig.subsequentChunkSize
+      }
+    };
+  }
+  
+  // Get performance metrics for instant playback
+  getInstantPlaybackMetrics(): {
+    initialChunkSize: number;
+    subsequentChunkSize: number;
+    estimatedInitialLoadTime: number;
+    optimalForInstantPlayback: boolean;
+  } {
+    const initialSizeKB = this.instantChunkConfig.initialChunkSize / 1024;
+    const subsequentSizeKB = this.instantChunkConfig.subsequentChunkSize / 1024;
+    
+    // Estimate load time based on typical connection speeds
+    // Using conservative 3G speeds as baseline (1.5 Mbps = ~200 KB/s)
+    const estimatedInitialLoadTime = (initialSizeKB / 200) * 1000; // ms
+    const optimalForInstantPlayback = estimatedInitialLoadTime <= 500; // Under 500ms
+    
+    return {
+      initialChunkSize: this.instantChunkConfig.initialChunkSize,
+      subsequentChunkSize: this.instantChunkConfig.subsequentChunkSize,
+      estimatedInitialLoadTime,
+      optimalForInstantPlayback
     };
   }
 }

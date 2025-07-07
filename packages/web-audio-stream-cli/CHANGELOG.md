@@ -1,5 +1,13 @@
 # @zachhandley/web-audio-stream-cli
 
+## 1.1.0
+
+### Minor Changes
+
+- Updated to support deployment of enhanced audio worklet with instant playback features
+- Added instant playback performance monitoring support
+- Enhanced worklet processor with buffer underrun detection
+
 ## 1.0.0
 
 ### Major Changes

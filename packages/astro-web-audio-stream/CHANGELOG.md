@@ -1,5 +1,18 @@
 # @zachhandley/astro-web-audio-stream
 
+## 1.1.0
+
+### Minor Changes
+
+- Updated to use z-web-audio-stream v1.1.0 with instant playback support
+- Enhanced Astro integration with instant playback configuration options
+- Added support for automatic instant playback optimization
+
+### Patch Changes
+
+- Updated dependencies
+  - z-web-audio-stream@1.1.0
+
 ## 1.0.0
 
 ### Major Changes

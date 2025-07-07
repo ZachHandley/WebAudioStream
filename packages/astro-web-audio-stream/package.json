@@ -1,7 +1,7 @@
 {
   "name": "z-astro-web-audio-stream",
-  "version": "1.0.0",
-  "description": "Astro integration for Web Audio Stream with automatic worklet deployment",
+  "version": "1.2.0",
+  "description": "Astro integration for Web Audio Stream with separated download/storage optimization and automatic worklet deployment",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -25,7 +25,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "z-web-audio-stream": "^1.0.0"
+    "z-web-audio-stream": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.10",
@@ -39,10 +39,13 @@
   },
   "keywords": [
     "astro",
-    "astro-integration",
+    "astro-integration", 
     "web-audio",
     "ios-safari",
-    "audio-streaming"
+    "audio-streaming",
+    "instant-playback",
+    "download-optimization",
+    "separated-chunking"
   ],
   "repository": {
     "type": "git",

@@ -69,15 +69,15 @@ export default function webAudioStream(options: WebAudioStreamOptions = {}): Ast
         }
         
         try {
-          // Find the worklet file from web-audio-stream package
+          // Find the worklet file from z-web-audio-stream package
           let workletSource: string;
           
           // Try to find it in node_modules
-          const nodeModulesPath = resolve(config.root.pathname, 'node_modules/web-audio-stream/dist/audio-worklet-processor.js');
+          const nodeModulesPath = resolve(config.root.pathname, 'node_modules/z-web-audio-stream/dist/audio-worklet-processor.js');
           if (existsSync(nodeModulesPath)) {
             workletSource = readFileSync(nodeModulesPath, 'utf8');
           } else {
-            throw new Error('Could not find web-audio-stream package. Please install it: npm install web-audio-stream');
+            throw new Error('Could not find z-web-audio-stream package. Please install it: npm install z-web-audio-stream');
           }
           
           // Determine output path

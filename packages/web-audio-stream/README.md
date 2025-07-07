@@ -1,14 +1,19 @@
 # web-audio-stream
 
-iOS Safari-safe Web Audio streaming with progressive loading and memory management.
+iOS Safari-safe Web Audio streaming with **separated download/storage optimization**, instant playback and memory management.
 
 ## ✨ Features
 
+- **🚀 Instant Playback**: Start playing within 100-500ms using separated download strategy
+- **📡 Download Optimization**: Network-optimized chunks (64KB-512KB) separate from storage chunks (1-3MB)
+- **🔄 Streaming Assembly**: Real-time chunk assembly for seamless playback transitions
 - **🍎 iOS Safari Compatibility**: Fixes pitch/speed issues and prevents page reloads
-- **⚡ Progressive Loading**: Instant playback with chunk-based streaming
+- **⚡ Progressive Loading**: Background streaming with seamless buffer replacement
+- **🎯 Range Request Support**: Parallel downloads with configurable concurrency
 - **💾 Smart Caching**: IndexedDB storage with automatic cleanup
 - **🔊 AudioWorklet**: High-performance audio processing
 - **📱 Memory Safe**: Adaptive chunk sizing to prevent iOS crashes
+- **📊 Performance Monitoring**: Real-time metrics and adaptive optimization
 - **🔧 Easy Setup**: Simple API with TypeScript support
 
 ## 🚨 iOS Safari Issues This Fixes
@@ -42,13 +47,68 @@ npx z-web-audio-stream-cli deploy
 cp node_modules/z-web-audio-stream/dist/audio-worklet-processor.js public/
 ```
 
-### 2. Basic Usage
+### 2. Instant Playback with Separated Optimization (Recommended)
+
+```typescript
+import { setupInstantAudio } from 'z-web-audio-stream';
+
+// Initialize with separated download/storage optimization
+const manager = await setupInstantAudio({
+  downloadChunkSize: 256 * 1024,    // 256KB downloads for network optimization
+  storageChunkSize: 2 * 1024 * 1024, // 2MB chunks for IndexedDB efficiency
+  playbackChunkSize: 384 * 1024,     // 384KB for instant playback start
+  enablePerformanceLogging: true,     // See detailed performance metrics
+  onTimeUpdate: (currentTime, duration) => {
+    console.log(`Playing: ${currentTime}s / ${duration}s`);
+  },
+  onProgressiveLoadingStatus: (status, data) => {
+    if (status === 'STARTED') {
+      console.log('🚀 Separated instant playback started!');
+      console.log(`Strategy: ${data.strategy}`);
+    }
+  }
+});
+
+// Start playing instantly - audio begins within 500ms
+await manager.playInstantly('/audio/song.mp3', 'song-1', 'My Song');
+```
+
+## 🏗️ Separated Download/Storage Architecture
+
+WebAudioStream v1.2.0+ uses a sophisticated **three-layer architecture** that separates concerns for optimal performance:
+
+### 📡 Layer 1: Download Manager
+- **Purpose**: Network transfer optimization
+- **Chunk Size**: 64KB-512KB (optimized for HTTP/2 and mobile networks)
+- **Features**: Parallel downloads, range requests, connection speed adaptation
+- **Benefits**: Faster initial response, better network utilization
+
+### 🔄 Layer 2: Streaming Assembler  
+- **Purpose**: Real-time chunk assembly and playback preparation
+- **Chunk Size**: 256KB-384KB for first playback chunk, larger for storage
+- **Features**: Streaming assembly, immediate playback readiness detection
+- **Benefits**: Sub-500ms playback start, seamless transitions
+
+### 💾 Layer 3: Storage Manager
+- **Purpose**: IndexedDB optimization and memory management
+- **Chunk Size**: 1-3MB (optimized for browser storage efficiency)
+- **Features**: iOS Safari retry logic, automatic cleanup, obfuscation
+- **Benefits**: Reliable caching, memory safety, privacy protection
+
+```
+Download (256KB) → Assembly (384KB) → Storage (2MB) → Playback
+     ↓               ↓                 ↓            ↓
+Fast Network    Instant Start    Efficient Cache  Smooth Audio
+```
+
+### 3. Basic Usage
 
 ```typescript
 import { setupWebAudio } from 'z-web-audio-stream';
 
 // Initialize with iOS-safe defaults
 const manager = await setupWebAudio({
+  enableInstantPlayback: true, // Enable instant playback
   onTimeUpdate: (currentTime, duration) => {
     console.log(`Playing: ${currentTime}s / ${duration}s`);
   },
@@ -60,8 +120,11 @@ const manager = await setupWebAudio({
   }
 });
 
-// Load and play audio
+// Traditional loading (waits for full download)
 await manager.loadAndPlay('/audio/song.mp3', 'song-1', 'My Song');
+
+// OR use instant playback (recommended)
+await manager.playInstantly('/audio/song.mp3', 'song-1', 'My Song');
 
 // Control playback
 await manager.pause();
@@ -70,7 +133,7 @@ await manager.seek(30); // Seek to 30 seconds
 manager.setVolume(0.8); // 80% volume
 ```
 
-### 3. Advanced Usage
+### 4. Advanced Configuration
 
 ```typescript
 import { WebAudioManager, AudioChunkStore } from 'z-web-audio-stream';
@@ -78,23 +141,76 @@ import { WebAudioManager, AudioChunkStore } from 'z-web-audio-stream';
 const manager = new WebAudioManager({
   workletPath: '/audio-worklet-processor.js',
   enableCache: true,
+  enableInstantPlayback: true,
+  instantPlaybackConfig: {
+    initialChunkSize: 384 * 1024,     // 384KB for instant start
+    subsequentChunkSize: 2 * 1024 * 1024,  // 2MB for streaming
+    maxInitialWaitTime: 500,          // 500ms max wait
+    strategy: 'auto'                  // auto, always, never
+  },
   maxCacheSize: 1024 * 1024 * 1024, // 1GB
   onProgressiveLoadingStatus: (status, data) => {
-    if (status === 'STARTED') {
-      console.log('Progressive loading started');
-    }
+    console.log('Status:', status, data);
   }
 });
 
 await manager.initialize();
 
+// Get performance recommendations
+const strategy = manager.getPlaybackStrategy('/audio/song.mp3', {
+  estimatedFileSize: 5 * 1024 * 1024,
+  connectionSpeed: 'medium',
+  deviceType: 'mobile'
+});
+console.log('Recommended strategy:', strategy);
+
+// Use instant playback with progress tracking
+await manager.playInstantly('/audio/song.mp3', 'song-1', 'My Song', {
+  onChunkLoaded: (loaded, total) => {
+    console.log(`Chunks loaded: ${loaded}/${total}`);
+  },
+  onFullyLoaded: () => {
+    console.log('Full audio loaded in background');
+  }
+});
+
 // Preload for smooth transitions
 await manager.preloadAudio('/audio/next-song.mp3', 'song-2', 'Next Song');
 
-// Load with progress tracking
-await manager.loadAudio('/audio/large-file.mp3', 'song-3', (loaded, total) => {
-  console.log(`Loading: ${Math.round(loaded/total*100)}%`);
-});
+// Get performance metrics
+const metrics = manager.getInstantPlaybackMetrics();
+console.log('Performance metrics:', metrics);
+```
+
+## 🚀 Instant Playback
+
+### How It Works
+
+1. **Smart Chunking**: Loads small initial chunk (256-384KB) for instant start
+2. **Background Streaming**: Continues loading larger chunks (1-2MB) in background
+3. **Seamless Replacement**: Replaces buffer without interrupting playback
+4. **Range Request Support**: Uses HTTP Range requests when server supports them
+5. **Adaptive Strategy**: Automatically chooses best approach based on conditions
+
+### Performance Targets
+
+- **Start Time**: < 500ms on 3G, < 200ms on WiFi
+- **Buffer Switch**: < 50ms seamless transitions
+- **Memory Usage**: Optimized for iOS Safari limits
+- **Error Recovery**: Graceful fallback to standard loading
+
+### Configuration Options
+
+```typescript
+const config: InstantPlaybackConfig = {
+  initialChunkSize: 384 * 1024,      // First chunk size (384KB)
+  subsequentChunkSize: 2 * 1024 * 1024, // Streaming chunks (2MB)
+  predictiveLoadingThreshold: 0.75,   // Start next chunk at 75%
+  maxInitialWaitTime: 500,           // Max wait for first chunk
+  strategy: 'auto'                   // auto | always | never
+};
+
+manager.enableInstantMode(config);
 ```
 
 ## 🍎 iOS Safari Optimizations
@@ -102,9 +218,10 @@ await manager.loadAudio('/audio/large-file.mp3', 'song-3', (loaded, total) => {
 ### Automatic Features
 
 - **Sample Rate Monitoring**: Detects and fixes iOS sample rate bugs
-- **Memory-Safe Chunks**: 1-2MB chunks on iOS vs 8MB on desktop
+- **Memory-Safe Chunks**: 256KB-1MB chunks on iOS vs 2-8MB on desktop
 - **IndexedDB Retry Logic**: 3-attempt retry with delays for Safari
 - **Broken State Detection**: Plays dummy buffer to reset AudioContext
+- **Instant Playback Limits**: Smaller chunks to prevent iOS memory pressure
 
 ### iOS-Specific Behavior
 
@@ -113,7 +230,11 @@ import { isIOSSafari } from 'z-web-audio-stream';
 
 if (isIOSSafari()) {
   console.log('iOS Safari detected - optimizations active');
-  // Smaller chunk sizes, retry logic, sample rate monitoring all automatic
+  // All optimizations are automatic:
+  // - Smaller chunk sizes
+  // - Retry logic
+  // - Sample rate monitoring
+  // - Memory pressure handling
 }
 ```
 
@@ -132,6 +253,23 @@ class WebAudioManager {
   async loadAudio(url: string, trackId: string, progressCallback?: Function): Promise<AudioBuffer>
   async loadAndPlay(url: string, trackId: string, name?: string): Promise<void>
   async preloadAudio(url: string, trackId: string, name?: string): Promise<void>
+  
+  // Instant playback methods
+  async playInstantly(url: string, trackId: string, name: string, options?: {
+    forceInstant?: boolean;
+    onChunkLoaded?: (chunkIndex: number, totalChunks: number) => void;
+    onFullyLoaded?: () => void;
+  }): Promise<void>
+  
+  getPlaybackStrategy(url: string, options?: {
+    estimatedFileSize?: number;
+    connectionSpeed?: 'slow' | 'medium' | 'fast';
+    deviceType?: 'mobile' | 'desktop';
+  }): { strategy: 'instant' | 'progressive' | 'standard'; reasoning: string; }
+  
+  enableInstantMode(config?: Partial<InstantPlaybackConfig>): void
+  disableInstantMode(): void
+  getInstantPlaybackMetrics(): InstantPlaybackMetrics
   
   // Playback control
   async play(trackId: string): Promise<void>
@@ -152,14 +290,28 @@ IndexedDB-based storage with iOS Safari compatibility.
 
 ```typescript
 class AudioChunkStore {
-  constructor(audioContext: AudioContext)
+  constructor(audioContext: AudioContext, instantConfig?: Partial<InstantChunkConfig>)
   
   async initialize(): Promise<void>
   async storeAudio(url: string, trackId: string, name: string, progressCallback?: ProgressCallback): Promise<AudioMetadata>
+  async storeAudioStreaming(url: string, trackId: string, name: string, options?: {
+    initialChunkSize?: number;
+    subsequentChunkSize?: number;
+    useRangeRequests?: boolean;
+    progressCallback?: ProgressCallback;
+  }): Promise<AudioMetadata>
+  
   async getAudioBuffer(trackId: string, startChunk?: number, chunkCount?: number): Promise<AudioBuffer | null>
+  async getFirstChunk(trackId: string): Promise<AudioBuffer | null>
+  async getProgressiveChunks(trackId: string, startChunk?: number, maxChunks?: number): Promise<AudioBuffer | null>
+  
   async isStored(trackId: string): Promise<boolean>
   async removeTrack(trackId: string): Promise<void>
   async cleanup(): Promise<void>
+  
+  configureInstantMode(config: Partial<InstantChunkConfig>): void
+  getInstantPlaybackMetrics(): InstantPlaybackMetrics
+  async getStorageInfo(): Promise<StorageInfo>
 }
 ```
 
@@ -200,7 +352,7 @@ export function useWebAudio() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    setupWebAudio({
+    setupInstantAudio({
       onTimeUpdate: (currentTime, duration) => {
         // Handle time updates
       },

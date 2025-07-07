@@ -1,6 +1,6 @@
 # WebAudioStream
 
-**iOS Safari-safe Web Audio streaming with progressive loading and memory management.**
+**iOS Safari-safe Web Audio streaming with instant playback, progressive loading and memory management.**
 
 ## 🍎 The Problem
 
@@ -15,11 +15,13 @@ iOS Safari has serious Web Audio API bugs that break audio streaming:
 
 WebAudioStream fixes all these issues with iOS-specific optimizations:
 
+- **🚀 Instant Playback** - Start playing within 100-500ms using smart chunking
 - **iOS-Safe AudioContext** - Detects and fixes broken states
-- **Memory-Safe Chunks** - 1-2MB chunks prevent page reloads
+- **Memory-Safe Chunks** - 256KB-2MB adaptive chunks prevent page reloads
 - **Safari IndexedDB Retry** - 3-attempt retry logic 
 - **Sample Rate Monitoring** - Real-time correction for pitch issues
-- **Progressive Loading** - Instant playback with first chunk
+- **Range Request Support** - Efficient partial content loading
+- **Performance Monitoring** - Real-time metrics and adaptive optimization
 
 ## 📦 Packages
 
@@ -43,7 +45,19 @@ npm install z-web-audio-stream
 npx z-web-audio-stream-cli deploy
 ```
 
-### 2. Basic Usage
+### 2. Instant Playback (Recommended)
+
+```typescript
+import { setupInstantAudio } from 'z-web-audio-stream';
+
+// Initialize with instant playback optimizations
+const manager = await setupInstantAudio();
+
+// Start playing instantly - audio begins within 500ms!
+await manager.playInstantly('/audio/song.mp3', 'song-1', 'My Song');
+```
+
+### 3. Traditional Usage
 
 ```typescript
 import { setupWebAudio } from 'z-web-audio-stream';

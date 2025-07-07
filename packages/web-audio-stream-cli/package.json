@@ -1,7 +1,7 @@
 {
   "name": "z-web-audio-stream-cli",
-  "version": "1.0.1",
-  "description": "CLI tool for deploying Web Audio Stream worklet files",
+  "version": "1.1.0",
+  "description": "CLI tool for deploying Web Audio Stream worklet files with instant playback support",
   "type": "module",
   "bin": {
     "z-web-audio-stream-cli": "./dist/cli.js",
@@ -38,7 +38,8 @@
     "ios-safari",
     "audio-worklet",
     "cli",
-    "deploy"
+    "deploy",
+    "instant-playback"
   ],
   "repository": {
     "type": "git",

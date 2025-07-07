@@ -287,6 +287,10 @@ class AudioPlaybackProcessor extends AudioWorkletProcessor {
           // Mark that we've reached the end
           if (!audioEnded) {
             audioEnded = true;
+            // Count buffer underrun for instant playback mode
+            if (this.instantPlaybackMode) {
+              this.performanceMetrics.bufferUnderruns++;
+            }
           }
         }
         

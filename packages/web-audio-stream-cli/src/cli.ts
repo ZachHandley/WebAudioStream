@@ -7,8 +7,10 @@ import ora from 'ora';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 const program = new Command();
 
 // Get version from package.json
@@ -16,7 +18,7 @@ const packageJsonPath = resolve(__dirname, '../package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 
 program
-  .name('web-audio-stream-cli')
+  .name('z-web-audio-stream-cli')
   .description('CLI tool for deploying Web Audio Stream worklet files')
   .version(packageJson.version);
 
@@ -30,20 +32,43 @@ program
     const spinner = ora('Deploying audio worklet processor...').start();
     
     try {
-      // Find the worklet file from web-audio-stream package
+      // Find the worklet file from z-web-audio-stream package
       let workletSource: string;
+      let workletPath: string;
       
-      // Try to find it in node_modules/web-audio-stream
-      const nodeModulesPath = resolve(process.cwd(), 'node_modules/web-audio-stream/dist/audio-worklet-processor.js');
-      if (existsSync(nodeModulesPath)) {
-        workletSource = readFileSync(nodeModulesPath, 'utf8');
-      } else {
-        // Fallback: use bundled version (for development)
-        const bundledPath = resolve(__dirname, '../../web-audio-stream/src/audio-worklet-processor.js');
-        if (existsSync(bundledPath)) {
-          workletSource = readFileSync(bundledPath, 'utf8');
+      try {
+        // First try to resolve the package using Node's module resolution
+        const packagePath = require.resolve('z-web-audio-stream/package.json');
+        const packageDir = dirname(packagePath);
+        workletPath = join(packageDir, 'dist/audio-worklet-processor.js');
+        
+        if (existsSync(workletPath)) {
+          workletSource = readFileSync(workletPath, 'utf8');
         } else {
-          throw new Error('Could not find audio worklet processor file');
+          throw new Error('Worklet file not found in package dist');
+        }
+      } catch (resolveError) {
+        // Fallback: try common locations
+        const locations = [
+          resolve(process.cwd(), 'node_modules/z-web-audio-stream/dist/audio-worklet-processor.js'),
+          resolve(process.cwd(), '../node_modules/z-web-audio-stream/dist/audio-worklet-processor.js'),
+        ];
+        
+        let found = false;
+        for (const location of locations) {
+          if (existsSync(location)) {
+            workletPath = location;
+            workletSource = readFileSync(location, 'utf8');
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          throw new Error(
+            'Could not find z-web-audio-stream package. Please ensure it is installed:\n' +
+            'npm install z-web-audio-stream'
+          );
         }
       }
       
@@ -62,7 +87,7 @@ program
       
       console.log(chalk.blue('\n📋 Next steps:'));
       console.log(chalk.gray('1. Import WebAudioManager in your app:'));
-      console.log(chalk.cyan('   import { setupWebAudio } from "web-audio-stream";'));
+      console.log(chalk.cyan('   import { setupWebAudio } from "z-web-audio-stream";'));
       console.log(chalk.gray('2. Initialize with the worklet path:'));
       console.log(chalk.cyan(`   const manager = await setupWebAudio({ workletPath: "/${options.filename}" });`));
       
@@ -95,9 +120,9 @@ program
     console.log(chalk.yellow('  • Broken AudioContext state detection and recovery'));
     
     console.log(chalk.blue.bold('\n📖 Usage:'));
-    console.log(chalk.cyan('  web-audio-stream-cli deploy     # Deploy worklet to public/'));
-    console.log(chalk.cyan('  web-audio-stream-cli info       # Show this information'));
-    console.log(chalk.cyan('  web-audio-stream-cli --help     # Show all commands'));
+    console.log(chalk.cyan('  z-web-audio-stream-cli deploy     # Deploy worklet to public/'));
+    console.log(chalk.cyan('  z-web-audio-stream-cli info       # Show this information'));
+    console.log(chalk.cyan('  z-web-audio-stream-cli --help     # Show all commands'));
   });
 
 // Check command - validates project setup
@@ -111,9 +136,16 @@ program
     
     const checks = [
       {
-        name: 'web-audio-stream package installed',
-        check: () => existsSync(resolve(process.cwd(), 'node_modules/web-audio-stream')),
-        fix: 'Run: npm install web-audio-stream'
+        name: 'z-web-audio-stream package installed',
+        check: () => {
+          try {
+            require.resolve('z-web-audio-stream');
+            return true;
+          } catch {
+            return existsSync(resolve(process.cwd(), 'node_modules/z-web-audio-stream'));
+          }
+        },
+        fix: 'Run: npm install z-web-audio-stream'
       },
       {
         name: 'Public directory exists',
@@ -123,7 +155,7 @@ program
       {
         name: 'Audio worklet file deployed',
         check: () => existsSync(resolve(process.cwd(), options.dest, options.filename)),
-        fix: 'Run: web-audio-stream-cli deploy'
+        fix: 'Run: z-web-audio-stream-cli deploy'
       }
     ];
     
@@ -144,7 +176,7 @@ program
     if (allPassed) {
       console.log(chalk.green.bold('🎉 All checks passed! Your project is ready for Web Audio Stream.'));
       console.log(chalk.blue('\n📖 Quick start:'));
-      console.log(chalk.cyan('import { setupWebAudio } from "web-audio-stream";'));
+      console.log(chalk.cyan('import { setupWebAudio } from "z-web-audio-stream";'));
       console.log(chalk.cyan('const manager = await setupWebAudio();'));
       console.log(chalk.cyan('await manager.loadAndPlay("/audio/song.mp3", "song-1");'));
     } else {

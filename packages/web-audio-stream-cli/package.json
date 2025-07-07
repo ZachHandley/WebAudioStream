@@ -1,6 +1,6 @@
 {
   "name": "z-web-audio-stream-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI tool for deploying Web Audio Stream worklet files",
   "type": "module",
   "bin": {

@@ -49,5 +49,8 @@
     "directory": "packages/web-audio-stream"
   },
   "author": "Zachary Handley <zach@zachhandley.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

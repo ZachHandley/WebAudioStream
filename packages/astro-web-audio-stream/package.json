@@ -35,7 +35,7 @@
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "astro": "^4.0.0"
+    "astro": "^5.0.0"
   },
   "keywords": [
     "astro",
@@ -50,5 +50,8 @@
     "directory": "packages/astro-web-audio-stream"
   },
   "author": "Zachary Handley <zach@zachhandley.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

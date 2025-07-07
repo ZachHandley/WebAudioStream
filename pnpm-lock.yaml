@@ -26,7 +26,7 @@ importers:
 
   packages/astro-web-audio-stream:
     dependencies:
-      '@zachhandley/web-audio-stream':
+      z-web-audio-stream:
         specifier: workspace:*
         version: link:../web-audio-stream
     devDependencies:

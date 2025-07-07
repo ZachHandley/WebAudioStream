@@ -25,7 +25,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "z-web-audio-stream": "workspace:*"
+    "z-web-audio-stream": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.10",

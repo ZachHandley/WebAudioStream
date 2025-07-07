@@ -1,13 +1,13 @@
-# web-audio-stream-cli
+# z-z-z-web-audio-stream-cli
 
 CLI tool for deploying Web Audio Stream worklet files to your project.
 
 ## 📦 Installation
 
 ```bash
-npm install -g web-audio-stream-cli
+npm install -g z-z-web-audio-stream-cli
 # or use without installing
-npx web-audio-stream-cli
+npx z-z-web-audio-stream-cli
 ```
 
 ## 🚀 Commands
@@ -17,12 +17,12 @@ npx web-audio-stream-cli
 Copy the audio worklet processor to your public directory:
 
 ```bash
-web-audio-stream-cli deploy
+z-z-web-audio-stream-cli deploy
 # or short form
 was-cli deploy
 
 # Custom destination
-web-audio-stream-cli deploy --dest public --filename audio-worklet-processor.js
+z-z-web-audio-stream-cli deploy --dest public --filename audio-worklet-processor.js
 ```
 
 **Options:**
@@ -34,11 +34,11 @@ web-audio-stream-cli deploy --dest public --filename audio-worklet-processor.js
 Validate your project setup:
 
 ```bash
-web-audio-stream-cli check
+z-z-web-audio-stream-cli check
 ```
 
 This verifies:
-- ✅ `web-audio-stream` package is installed
+- ✅ `z-web-audio-stream` package is installed
 - ✅ Public directory exists
 - ✅ Audio worklet file is deployed
 
@@ -47,7 +47,7 @@ This verifies:
 Display package info and iOS Safari optimizations:
 
 ```bash
-web-audio-stream-cli info
+z-z-web-audio-stream-cli info
 ```
 
 ## 🔧 Programmatic Usage
@@ -55,7 +55,7 @@ web-audio-stream-cli info
 You can also use the CLI functions programmatically:
 
 ```typescript
-import { deployWorklet, checkSetup } from 'web-audio-stream-cli';
+import { deployWorklet, checkSetup } from 'z-z-web-audio-stream-cli';
 
 // Deploy worklet
 await deployWorklet({
@@ -88,17 +88,17 @@ The CLI ensures the iOS-safe audio worklet is properly deployed to your project.
 
 1. **Install the package:**
    ```bash
-   npm install web-audio-stream
+   npm install z-web-audio-stream
    ```
 
 2. **Deploy the worklet:**
    ```bash
-   npx web-audio-stream-cli deploy
+   npx z-z-web-audio-stream-cli deploy
    ```
 
 3. **Use in your app:**
    ```typescript
-   import { setupWebAudio } from 'web-audio-stream';
+   import { setupWebAudio } from 'z-web-audio-stream';
    
    const manager = await setupWebAudio({
      workletPath: '/audio-worklet-processor.js'
@@ -109,13 +109,13 @@ The CLI ensures the iOS-safe audio worklet is properly deployed to your project.
 
 4. **Verify setup:**
    ```bash
-   npx web-audio-stream-cli check
+   npx z-z-web-audio-stream-cli check
    ```
 
 ## 🔍 Troubleshooting
 
 **"Could not find audio worklet processor file"**
-- Make sure `web-audio-stream` is installed: `npm install web-audio-stream`
+- Make sure `z-web-audio-stream` is installed: `npm install z-web-audio-stream`
 - Try running from your project root directory
 
 **"Permission denied"**
@@ -123,8 +123,8 @@ The CLI ensures the iOS-safe audio worklet is properly deployed to your project.
 - Try running with `sudo` if necessary
 
 **CLI not found**
-- Install globally: `npm install -g web-audio-stream-cli`
-- Or use npx: `npx web-audio-stream-cli`
+- Install globally: `npm install -g z-z-web-audio-stream-cli`
+- Or use npx: `npx z-z-web-audio-stream-cli`
 
 ## 📄 License
 

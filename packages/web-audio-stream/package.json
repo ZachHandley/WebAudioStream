@@ -1,5 +1,5 @@
 {
-  "name": "@zachhandley/web-audio-stream",
+  "name": "z-web-audio-stream",
   "version": "1.0.0",
   "description": "iOS Safari-safe Web Audio streaming with progressive loading and memory management",
   "type": "module",

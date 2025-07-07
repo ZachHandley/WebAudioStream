@@ -27,9 +27,9 @@ This monorepo contains multiple packages for different use cases:
 
 | Package | Description | NPM |
 |---------|-------------|-----|
-| **[@zachhandley/web-audio-stream](./packages/web-audio-stream)** | Core library with iOS Safari fixes | `npm install @zachhandley/web-audio-stream` |
-| **[@zachhandley/web-audio-stream-cli](./packages/web-audio-stream-cli)** | CLI tool for worklet deployment | `npm install -g @zachhandley/web-audio-stream-cli` |
-| **[@zachhandley/astro-web-audio-stream](./packages/astro-web-audio-stream)** | Astro integration with auto-deployment | `npm install @zachhandley/astro-web-audio-stream` |
+| **[z-web-audio-stream](./packages/web-audio-stream)** | Core library with iOS Safari fixes | `npm install z-web-audio-stream` |
+| **[z-web-audio-stream-cli](./packages/web-audio-stream-cli)** | CLI tool for worklet deployment | `npm install -g z-web-audio-stream-cli` |
+| **[z-astro-web-audio-stream](./packages/astro-web-audio-stream)** | Astro integration with auto-deployment | `npm install z-astro-web-audio-stream` |
 
 ## 🚀 Quick Start
 
@@ -37,16 +37,16 @@ This monorepo contains multiple packages for different use cases:
 
 ```bash
 # Install the core package
-npm install @zachhandley/web-audio-stream
+npm install z-web-audio-stream
 
 # Deploy the iOS-safe audio worklet
-npx @zachhandley/web-audio-stream-cli deploy
+npx z-web-audio-stream-cli deploy
 ```
 
 ### 2. Basic Usage
 
 ```typescript
-import { setupWebAudio } from '@zachhandley/web-audio-stream';
+import { setupWebAudio } from 'z-web-audio-stream';
 
 // Initialize with iOS-safe defaults
 const manager = await setupWebAudio({
@@ -64,7 +64,7 @@ await manager.loadAndPlay('/audio/song.mp3', 'song-1', 'My Song');
 **Astro (Auto-deployment):**
 ```javascript
 // astro.config.mjs
-import webAudioStream from '@zachhandley/astro-web-audio-stream';
+import webAudioStream from 'z-astro-web-audio-stream';
 
 export default defineConfig({
   integrations: [webAudioStream()] // Worklet auto-deployed!
@@ -74,7 +74,7 @@ export default defineConfig({
 **React/Vue/Svelte:**
 ```typescript
 import { useEffect, useState } from 'react';
-import { setupWebAudio } from '@zachhandley/web-audio-stream';
+import { setupWebAudio } from 'z-web-audio-stream';
 
 function useWebAudio() {
   const [manager, setManager] = useState(null);

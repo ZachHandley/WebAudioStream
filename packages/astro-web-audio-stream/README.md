@@ -1,4 +1,4 @@
-# @web-audio-stream/astro
+# z-astro-z-web-audio-stream
 
 Astro integration for Web Audio Stream with automatic worklet deployment.
 
@@ -14,9 +14,9 @@ This integration automatically sets up iOS Safari-safe audio streaming that fixe
 ## 📦 Installation
 
 ```bash
-npm install @web-audio-stream/astro web-audio-stream
+npm install z-astro-z-web-audio-stream z-web-audio-stream
 # or
-pnpm add @web-audio-stream/astro web-audio-stream
+pnpm add z-astro-z-web-audio-stream z-web-audio-stream
 ```
 
 ## 🚀 Setup
@@ -25,7 +25,7 @@ Add the integration to your `astro.config.mjs`:
 
 ```javascript
 import { defineConfig } from 'astro/config';
-import webAudioStream from '@web-audio-stream/astro';
+import webAudioStream from 'z-astro-z-web-audio-stream';
 
 export default defineConfig({
   integrations: [
@@ -64,7 +64,7 @@ export default defineConfig({
 </div>
 
 <script>
-  import { setupWebAudio } from 'web-audio-stream';
+  import { setupWebAudio } from 'z-web-audio-stream';
   
   // Initialize with iOS-safe defaults
   const manager = await setupWebAudio({
@@ -93,7 +93,7 @@ export default defineConfig({
 ```tsx
 // src/components/ReactAudioPlayer.tsx
 import { useEffect, useState } from 'react';
-import { setupWebAudio, type WebAudioManager } from 'web-audio-stream';
+import { setupWebAudio, type WebAudioManager } from 'z-web-audio-stream';
 
 export default function ReactAudioPlayer() {
   const [manager, setManager] = useState<WebAudioManager | null>(null);
@@ -187,7 +187,7 @@ export default defineConfig({
 
 Then deploy manually:
 ```bash
-npx web-audio-stream-cli deploy
+npx z-web-audio-stream-cli deploy
 ```
 
 ## 🍎 iOS Safari Benefits
@@ -206,7 +206,7 @@ This integration ensures your Astro site works perfectly on iOS Safari:
 
 ```astro
 <script>
-  import { setupWebAudio } from 'web-audio-stream';
+  import { setupWebAudio } from 'z-web-audio-stream';
   
   const manager = await setupWebAudio();
   
@@ -270,12 +270,12 @@ function Playlist({ songs }) {
 
 **Integration not found**
 ```bash
-npm install @web-audio-stream/astro
+npm install z-astro-z-web-audio-stream
 ```
 
 **Worklet file not deployed**
 - Check that `autoDeploy: true` (default)
-- Verify `web-audio-stream` is installed
+- Verify `z-web-audio-stream` is installed
 - Check build logs for error messages
 
 **iOS audio still has issues**

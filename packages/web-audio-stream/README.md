@@ -21,11 +21,11 @@ iOS Safari-safe Web Audio streaming with progressive loading and memory manageme
 ## 📦 Installation
 
 ```bash
-npm install web-audio-stream
+npm install z-web-audio-stream
 # or
-pnpm add web-audio-stream
+pnpm add z-web-audio-stream
 # or  
-yarn add web-audio-stream
+yarn add z-web-audio-stream
 ```
 
 ## 🚀 Quick Start
@@ -36,16 +36,16 @@ First, copy the AudioWorklet processor to your public directory:
 
 ```bash
 # Using CLI (recommended)
-npx web-audio-stream-cli deploy
+npx z-web-audio-stream-cli deploy
 
 # Or manually copy from node_modules
-cp node_modules/web-audio-stream/dist/audio-worklet-processor.js public/
+cp node_modules/z-web-audio-stream/dist/audio-worklet-processor.js public/
 ```
 
 ### 2. Basic Usage
 
 ```typescript
-import { setupWebAudio } from 'web-audio-stream';
+import { setupWebAudio } from 'z-web-audio-stream';
 
 // Initialize with iOS-safe defaults
 const manager = await setupWebAudio({
@@ -73,7 +73,7 @@ manager.setVolume(0.8); // 80% volume
 ### 3. Advanced Usage
 
 ```typescript
-import { WebAudioManager, AudioChunkStore } from 'web-audio-stream';
+import { WebAudioManager, AudioChunkStore } from 'z-web-audio-stream';
 
 const manager = new WebAudioManager({
   workletPath: '/audio-worklet-processor.js',
@@ -109,7 +109,7 @@ await manager.loadAudio('/audio/large-file.mp3', 'song-3', (loaded, total) => {
 ### iOS-Specific Behavior
 
 ```typescript
-import { isIOSSafari } from 'web-audio-stream';
+import { isIOSSafari } from 'z-web-audio-stream';
 
 if (isIOSSafari()) {
   console.log('iOS Safari detected - optimizations active');
@@ -170,13 +170,13 @@ class AudioChunkStore {
 Install the Astro integration:
 
 ```bash
-npm install @web-audio-stream/astro
+npm install z-astro-web-audio-stream
 ```
 
 ```javascript
 // astro.config.mjs
 import { defineConfig } from 'astro/config';
-import webAudioStream from '@web-audio-stream/astro';
+import webAudioStream from 'z-astro-web-audio-stream';
 
 export default defineConfig({
   integrations: [
@@ -193,7 +193,7 @@ export default defineConfig({
 ```typescript
 // hooks/useWebAudio.ts
 import { useEffect, useState } from 'react';
-import { setupWebAudio, WebAudioManager } from 'web-audio-stream';
+import { setupWebAudio, WebAudioManager } from 'z-web-audio-stream';
 
 export function useWebAudio() {
   const [manager, setManager] = useState<WebAudioManager | null>(null);

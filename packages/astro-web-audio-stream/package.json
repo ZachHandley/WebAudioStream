@@ -1,5 +1,5 @@
 {
-  "name": "@zachhandley/astro-web-audio-stream",
+  "name": "z-astro-web-audio-stream",
   "version": "1.0.0",
   "description": "Astro integration for Web Audio Stream with automatic worklet deployment",
   "type": "module",
@@ -25,7 +25,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@zachhandley/web-audio-stream": "workspace:*"
+    "z-web-audio-stream": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.10",

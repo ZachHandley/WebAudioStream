@@ -1,5 +1,5 @@
 {
-  "name": "@zachhandley/web-audio-stream-cli",
+  "name": "z-web-audio-stream-cli",
   "version": "1.0.0",
   "description": "CLI tool for deploying Web Audio Stream worklet files",
   "type": "module",

@@ -33,7 +33,7 @@ program
     
     try {
       // Find the worklet file from z-web-audio-stream package
-      let workletSource: string;
+      let workletSource: string | undefined;
       let workletPath: string;
       
       try {
@@ -70,6 +70,11 @@ program
             'npm install z-web-audio-stream'
           );
         }
+      }
+      
+      // Ensure we have the worklet source
+      if (!workletSource) {
+        throw new Error('Failed to load worklet source');
       }
       
       // Ensure destination directory exists

@@ -4,8 +4,8 @@
   "description": "CLI tool for deploying Web Audio Stream worklet files",
   "type": "module",
   "bin": {
-    "web-audio-stream-cli": "./dist/cli.js",
-    "was-cli": "./dist/cli.js"
+    "z-web-audio-stream-cli": "./dist/cli.js",
+    "zwas-cli": "./dist/cli.js"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

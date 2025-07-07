@@ -1,5 +1,42 @@
 # @zachhandley/web-audio-stream
 
+## 1.3.0
+
+### Minor Changes
+
+- Added comprehensive audio management methods for full-fledged audio control
+- **New Methods**: `getBufferDuration()`, `isAudioLoaded()`, `getCachedTracks()`
+- Enhanced cache management with detailed track metadata and access times
+- Improved audio state tracking and buffer duration access
+- Better integration for building complete audio player applications
+
+### Features
+
+- **Audio State Management**: Check if tracks are loaded in memory or cached
+- **Buffer Duration Access**: Get duration of loaded audio buffers by track ID
+- **Cache Inspection**: Retrieve all cached tracks with metadata, sizes, and access times
+- **Memory Optimization**: Track which audio is loaded vs cached for efficient memory usage
+
+## 1.2.0
+
+### Minor Changes
+
+- **Separated Download/Storage Architecture**: Independent optimization of network transfers and storage
+- **Three-Layer System**: DownloadManager (64KB-512KB) → StreamingAssembler (256KB-384KB) → AudioChunkStore (1-3MB)
+- Enhanced `playInstantly()` method with separated chunking strategy
+- Added `DownloadManager` class for network-optimized parallel downloads
+- Added `StreamingAssembler` class for real-time chunk assembly and playback preparation
+- Improved range request support with HTTP/2 optimization
+- Better iOS Safari memory pressure handling with adaptive chunk sizing
+
+### Features
+
+- **Download Optimization**: Network chunks (64KB-512KB) separate from storage chunks (1-3MB)
+- **Streaming Assembly**: Real-time assembly for sub-500ms playback start
+- **Parallel Downloads**: Configurable concurrent downloads with priority first chunk
+- **Adaptive Sizing**: Connection speed-based chunk size optimization
+- **Performance Monitoring**: Detailed metrics for download, assembly, and storage phases
+
 ## 1.1.0
 
 ### Minor Changes

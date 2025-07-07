@@ -14,6 +14,7 @@ iOS Safari-safe Web Audio streaming with **separated download/storage optimizati
 - **🔊 AudioWorklet**: High-performance audio processing
 - **📱 Memory Safe**: Adaptive chunk sizing to prevent iOS crashes
 - **📊 Performance Monitoring**: Real-time metrics and adaptive optimization
+- **🎵 Audio Management**: Full audio state tracking with duration, cache, and memory info
 - **🔧 Easy Setup**: Simple API with TypeScript support
 
 ## 🚨 iOS Safari Issues This Fixes
@@ -133,7 +134,42 @@ await manager.seek(30); // Seek to 30 seconds
 manager.setVolume(0.8); // 80% volume
 ```
 
-### 4. Advanced Configuration
+### 4. Audio Management (v1.3.0+)
+
+```typescript
+import { setupInstantAudio } from 'z-web-audio-stream';
+
+const manager = await setupInstantAudio();
+
+// Load and play some tracks
+await manager.playInstantly('/audio/song1.mp3', 'song-1', 'First Song');
+await manager.playInstantly('/audio/song2.mp3', 'song-2', 'Second Song');
+
+// Check audio state and get metadata
+const isLoaded = await manager.isAudioLoaded('song-1');
+console.log('Song 1 loaded:', isLoaded); // true
+
+const duration = manager.getBufferDuration('song-1');
+console.log('Song 1 duration:', duration); // e.g., 240.5 seconds
+
+// Get all cached tracks with metadata
+const cachedTracks = await manager.getCachedTracks();
+cachedTracks.forEach(track => {
+  console.log(`Track: ${track.name}`);
+  console.log(`Duration: ${track.duration}s`);
+  console.log(`Size: ${(track.size / 1024 / 1024).toFixed(1)}MB`);
+  console.log(`Loaded in memory: ${track.isLoaded}`);
+  console.log(`Last accessed: ${track.lastAccessed.toLocaleString()}`);
+});
+
+// Perfect for building audio players with:
+// - Track duration display
+// - Cache management
+// - Memory usage optimization
+// - Playlist state tracking
+```
+
+### 5. Advanced Configuration
 
 ```typescript
 import { WebAudioManager, AudioChunkStore } from 'z-web-audio-stream';
@@ -278,6 +314,18 @@ class WebAudioManager {
   async seek(time: number): Promise<void>
   setVolume(volume: number): void
   getCurrentTime(): number
+  
+  // Audio management methods (v1.3.0+)
+  getBufferDuration(trackId: string): number | null
+  async isAudioLoaded(trackId: string): Promise<boolean>
+  async getCachedTracks(): Promise<Array<{
+    trackId: string;
+    name?: string;
+    duration?: number;
+    size: number;
+    lastAccessed: Date;
+    isLoaded: boolean;
+  }>>
   
   // Cleanup
   async cleanup(): Promise<void>

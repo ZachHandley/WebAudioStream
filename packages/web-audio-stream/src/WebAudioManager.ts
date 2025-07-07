@@ -878,6 +878,78 @@ export class WebAudioManager {
     return this.lastKnownPosition;
   }
 
+  /**
+   * Get the duration of a loaded audio buffer
+   * @param trackId The track ID to get duration for
+   * @returns Duration in seconds, or null if not loaded
+   */
+  getBufferDuration(trackId: string): number | null {
+    const audioBuffer = this.audioBuffers.get(trackId);
+    return audioBuffer ? audioBuffer.duration : null;
+  }
+
+  /**
+   * Check if audio for a specific track is fully loaded
+   * @param trackId The track ID to check
+   * @returns True if audio is loaded and ready for playback
+   */
+  async isAudioLoaded(trackId: string): Promise<boolean> {
+    // Check if buffer is in memory
+    if (this.audioBuffers.has(trackId)) {
+      return true;
+    }
+    
+    // Check if stored in cache
+    if (this.chunkStore) {
+      return await this.chunkStore.isStored(trackId);
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get a list of all cached tracks with metadata
+   * @returns Array of cached track information
+   */
+  async getCachedTracks(): Promise<Array<{
+    trackId: string;
+    name?: string;
+    duration?: number;
+    size: number;
+    lastAccessed: Date;
+    isLoaded: boolean;
+  }>> {
+    if (!this.chunkStore) {
+      return [];
+    }
+
+    try {
+      // Access the private getAllMetadata method through any cast
+      const allMetadata = await (this.chunkStore as any).getAllMetadata();
+      const tracks = [];
+
+      for (const metadata of allMetadata) {
+        const isLoaded = this.audioBuffers.has(metadata.trackId);
+        const duration = isLoaded ? this.getBufferDuration(metadata.trackId) : metadata.duration;
+
+        tracks.push({
+          trackId: metadata.trackId,
+          name: metadata.name,
+          duration: duration || undefined,
+          size: metadata.fileSize,
+          lastAccessed: new Date(metadata.lastAccessed),
+          isLoaded
+        });
+      }
+
+      // Sort by last accessed (most recent first)
+      return tracks.sort((a, b) => b.lastAccessed.getTime() - a.lastAccessed.getTime());
+    } catch (error) {
+      console.warn('[WebAudioManager] Failed to get cached tracks:', error);
+      return [];
+    }
+  }
+
   // Determine if instant playback should be used
   private shouldUseInstantPlayback(url: string, forceInstant?: boolean): boolean {
     if (!this.enableInstantPlayback) return false;

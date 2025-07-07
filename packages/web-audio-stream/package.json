@@ -1,6 +1,6 @@
 {
   "name": "z-web-audio-stream",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "iOS Safari-safe Web Audio streaming with separated download/storage optimization, instant playback, and memory management",
   "type": "module",
   "main": "./dist/index.js",

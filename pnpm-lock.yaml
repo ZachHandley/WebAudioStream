@@ -27,7 +27,7 @@ importers:
   packages/astro-web-audio-stream:
     dependencies:
       z-web-audio-stream:
-        specifier: ^1.2.0
+        specifier: ^1.3.0
         version: link:../web-audio-stream
     devDependencies:
       '@types/node':
